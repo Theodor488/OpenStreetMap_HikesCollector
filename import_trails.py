@@ -36,6 +36,9 @@ for i in range(len(data["features"])):
         min_elevation_ft = 0
         curr_trail_dict["min_elevation_ft"] = min_elevation_ft
 
+        trailhead_elevation = 0
+        #https://api.open-meteo.com/v1/elevation?latitude=47.3928375&longitude=-121.4739661
+
         #max_elevation_ft
         max_elevation_ft = 0
         curr_trail_dict["max_elevation_ft"] = max_elevation_ft
@@ -60,7 +63,7 @@ for i in range(len(data["features"])):
             lon_2 = (coordinates[i][0])
             length_miles += geodesic((lat_1, lon_1), (lat_2, lon_2)).miles
 
-        curr_trail_dict["length_miles"] = length_miles
+        curr_trail_dict["length_miles"] = round(length_miles, 2)
 
         trails_list.append(curr_trail_dict)
     
