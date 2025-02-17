@@ -1,5 +1,6 @@
 import json
-import pyodbc
+#import pyodbc
+import requests
 from geopy.distance import geodesic
 
 trails_list = []
@@ -37,7 +38,11 @@ for i in range(len(data["features"])):
         curr_trail_dict["min_elevation_ft"] = min_elevation_ft
 
         trailhead_elevation = 0
+        lat = 47.3928375
+        lon = -121.4739661
         #https://api.open-meteo.com/v1/elevation?latitude=47.3928375&longitude=-121.4739661
+        url = "https://api.open-meteo.com/v1/elevation?latitude=52.52&longitude=13.41"
+        response = requests.get(url)
 
         #max_elevation_ft
         max_elevation_ft = 0
