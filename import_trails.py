@@ -2,6 +2,7 @@ import json
 import pyodbc
 import requests
 from geopy.distance import geodesic
+import geopy.distance
 
 trails_list = []
 MAX_LENGTH_MILES = 10 # Filter out all hikes more than 15 miles long
@@ -24,7 +25,17 @@ def get_coordinates(data, trail_idx, curr_trail_dict, node_idx):
     trail_point = [trail_point[1], trail_point[0]]
     return trail_point
 
-def get_trail_length_miles(trailhead, length_miles, coordinates):
+def is_loop(lat_start, lon_start, lat_end, lon_end):
+    coords_start = (lat_start, lon_start)
+    coords_end = (lat_end, lon_end)
+    start_to_end_distance = geopy.distance.geodesic(coords_start, coords_end).mi
+
+    # If trailhead is within 1/4 mile of trailend then it's a loop
+    if start_to_end_distance < 0.25:
+        return True
+    return False
+
+def get_trail_length_miles(trailhead, length_miles, coordinates, curr_trail_dict):
     if isinstance(trailhead[0], list):
         coordinates = coordinates[0]
 
@@ -34,6 +45,12 @@ def get_trail_length_miles(trailhead, length_miles, coordinates):
         lat_2 = (coordinates[i][1])
         lon_2 = (coordinates[i][0])
         length_miles += geodesic((lat_1, lon_1), (lat_2, lon_2)).miles
+    
+    if is_loop(lat_1, lon_1, lat_2, lon_2):
+        length_miles *= 2
+        curr_trail_dict["is_loop"] = "True"
+    else:
+        curr_trail_dict["is_loop"] = "False"
     return length_miles
 
 def meters_to_feet(meters):
@@ -58,15 +75,11 @@ def get_elevation_gain(elevations):
     elevation_gain = 0
 
     for i in range(1, len(elevations)):
-        lat_1 = (coordinates[i-1][1])
-        lon_1 = (coordinates[i-1][0])
-        lat_2 = (coordinates[i][1])
-        lon_2 = (coordinates[i][0])
-        elevation_1 = get_elevation(lat_1, lon_1)
-        elevation_2 = get_elevation(lat_2, lon_2)
+        elevation_1 = elevations[i-1]
+        elevation_2 = elevations[i]
         if elevation_2 > elevation_1:
             elevation_gain += (elevation_2 - elevation_1)
-    return elevation_gain
+    return round(elevation_gain, 2)
 
 for i in range(len(data["features"])):
 
@@ -80,7 +93,7 @@ for i in range(len(data["features"])):
         length_miles = 0
         coordinates = data["features"][i]["geometry"]["coordinates"]
         trailhead = data["features"][i]["geometry"]["coordinates"][0]
-        length_miles = round(get_trail_length_miles(trailhead, length_miles, coordinates), 2)
+        length_miles = round(get_trail_length_miles(trailhead, length_miles, coordinates, curr_trail_dict), 2)
 
         # Ignore all trails that are longer than MAX_LENGTH_MILES
         if length_miles > MAX_LENGTH_MILES:
@@ -92,6 +105,7 @@ for i in range(len(data["features"])):
 
         #length_miles
         curr_trail_dict["length_miles"] = length_miles
+        print(f"{curr_trail_dict['is_loop']}: is_loop")
         print(f"{length_miles}: length_miles")
 
         #geometry
@@ -128,7 +142,6 @@ for i in range(len(data["features"])):
         elevations = get_elevations(trailhead, coordinates)
 
         elevation_gain_ft = get_elevation_gain(elevations)
-        elevation_gain_ft = meters_to_feet(elevation_gain_ft) # fix this. not high enough
         curr_trail_dict["elevation_gain_ft"] = elevation_gain_ft
         print(f"{elevation_gain_ft}: elevation_gain_ft")
 
