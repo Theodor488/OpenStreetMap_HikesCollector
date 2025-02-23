@@ -7,18 +7,28 @@ import geopy.distance
 from elevation_service import *
 from trail_utils import *
 
-trails_list = []
-MAX_LENGTH_MILES = 10 # Filter out all hikes more than 15 miles long
+MAX_LENGTH_MILES = 10 # Filter out all hikes more than 10 miles long
 
 with open("export2.geojson", "r") as file:
     data = json.load(file)
 
-for i in range(len(data["features"])):
-    curr_trail_dict = {}
-    name = json.dumps(data["features"][i]["properties"].get("name", "Unknown"))
+def filter_trails(features: list, max_length: float) -> list:
+    trails_names_list = []
+    for i, feature in enumerate(features):
+        curr_trail_dict = {}
+        name = json.dumps(data["features"][i]["properties"].get("name", "Unknown"))
+        if name != '"Unknown"':
+            trails_names_list.append(name)
+    return
+
+# Create helper functions
+# Filter out trail names first, then go through list and process valid trails
+
+def main():
+    trails_names_list = filter_trails(data["features"], MAX_LENGTH_MILES)
 
     # Check if trail name exists
-    if name != '"Unknown"':
+    for trail_name in trails_names_list:
         #length_miles
         length_miles = 0
         coordinates = data["features"][i]["geometry"]["coordinates"]
@@ -76,6 +86,5 @@ for i in range(len(data["features"])):
 
         trails_list.append(curr_trail_dict)
     
-print("e")
 
 
